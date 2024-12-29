@@ -2,13 +2,11 @@ import numpy as np
 from RRTTree import RRTTree
 import time
 
-
 class RRTMotionPlanner(object):
-
-    def __init__(self, bb, ext_mode, goal_prob, start, goal):
-
+    def __init__(self, bb, dbb, ext_mode, goal_prob, step_size, start, goal):
         # set environment and search tree
         self.bb = bb
+        self.dbb = dbb
         self.tree = RRTTree(self.bb)
         self.start = start
         self.goal = goal
@@ -16,21 +14,42 @@ class RRTMotionPlanner(object):
         # set search params
         self.ext_mode = ext_mode
         self.goal_prob = goal_prob
+        self.step_size = step_size
 
     def plan(self):
         '''
         Compute and return the plan. The function should return a numpy array containing the states in the configuration space.
         '''
-        # TODO: HW3 2.2.3
-        pass
+        # Tree sampling
+        self.tree.add_vertex(self.start)
+        while not self.tree.is_goal_exists(self.goal):
+            rand_config = self.dbb.sample_random_config(self.goal_prob, self.goal)  # assuming returns a valid config
+            near_config_id, near_config = self.tree.get_nearest_config(rand_config)
+            new_config = self.extend(near_config, rand_config)
+
+            if self.dbb.edge_validity_checker(new_config, near_config):
+                vid = self.tree.add_vertex(new_config)
+                cost = self.bb.compute_distance(new_config, near_config)
+                self.tree.add_edge(near_config_id, vid, cost)
+
+        # Plan computation
+        plan = [self.goal]
+        while self.start not in plan:
+            child = plan[0]
+            child_idx = self.tree.get_idx_for_config(child)
+            parent_idx = self.tree.edges[child_idx]
+            parent = self.tree.vertices[parent_idx].config
+
+            plan.insert(0, parent)
+
+        return np.array(plan)
 
     def compute_cost(self, plan):
         '''
         Compute and return the plan cost, which is the sum of the distances between steps in the configuration space.
         @param plan A given plan for the robot.
         '''
-        # TODO: HW3 2.2.2
-        pass
+        return self.tree.get_vertex_for_config(plan[-1]).cost
 
     def extend(self, near_config, rand_config):
         '''
@@ -38,5 +57,20 @@ class RRTMotionPlanner(object):
         @param near_config The nearest configuration to the sampled configuration.
         @param rand_config The sampled configuration.
         '''
-        # TODO: HW3 2.2.1
-        pass
+        sampled_goal = np.allclose(rand_config, self.goal)
+        rand_config = self.goal if sampled_goal else rand_config
+
+        if self.ext_mode == "E1":
+            return rand_config
+
+        # Unit direction vector
+        direction = rand_config - near_config
+        distance = np.linalg.norm(direction)
+        direction = direction / distance
+
+        if sampled_goal and distance <= self.step_size:
+            new_config = self.goal
+        else:
+            new_config = direction * self.step_size + near_config
+
+        return new_config
