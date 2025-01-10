@@ -22,7 +22,7 @@ class BuildingBlocks2D(object):
         @param prev_config Previous configuration.
         @param next_config Next configuration.
         '''
-        # TODO: HW2 4.2.1
+        return np.linalg.norm(next_config - prev_config)
         pass
 
     def compute_path_cost(self, path):
@@ -37,8 +37,17 @@ class BuildingBlocks2D(object):
         @param given_config Given configuration.
         '''
         # positions are 2D points + angle (3 dimensions) for each of the links of the robot
-        # TODO: HW2 4.2.2
-        pass
+        res = np.zeros((self.dim, 2))
+        angle = 0
+        x, y = 0, 0
+
+        for i in range(self.dim):
+            angle += given_config[i]
+            x += self.links[i] * np.cos(angle)
+            y += self.links[i] * np.sin(angle)
+            res[i] = (x,y) # (x, y, angle)
+        return res
+
 
     def compute_ee_angle(self, given_config):
         '''
@@ -69,8 +78,8 @@ class BuildingBlocks2D(object):
         Verify that the given set of links positions does not contain self collisions.
         @param robot_positions Given links positions.
         '''
-        # TODO: HW2 4.2.1
-        pass
+        return LineString(robot_positions).is_simple
+
 
     def config_validity_checker(self, config):
         '''
@@ -227,14 +236,30 @@ class BuildingBlocks2D(object):
 
         return True
 
+
     def compute_union_of_points(self, points1, points2):
         '''
         Compute a union of two sets of inpection points.
         @param points1 list of inspected points.
         @param points2 list of inspected points.
         '''
-        # TODO: HW3 2.3.2
-        pass
+        """
+        try:
+            return points2 if len(points1) == 0 else (
+                points1) if len(points2) == 0 else (
+                np.unique(np.concatenate([points1, points2])))
+        except ValueError as e:
+            print(points1)
+            print(points2)
+            raise e
+        """
+        # Convert lists to sets of tuples for union operation
+        set1 = set(map(tuple, points1))
+        set2 = set(map(tuple, points2))
+
+        union_set = set1 | set2
+        union_list = [list(point) for point in union_set]
+        return union_list
 
     def compute_coverage(self, inspected_points):
         '''
