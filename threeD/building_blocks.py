@@ -34,8 +34,10 @@ class BuildingBlocks3D(object):
         @param goal_conf - the goal configuration
         :param goal_prob - the probability that goal should be sampled
         """
-        # TODO: HW2 5.2.1
-        pass
+        if np.random.random() < goal_prob:
+            return goal_conf
+
+        return np.array([np.random.uniform(lim[0], lim[1]) for lim in self.ur_params.mechal_limits.values()])
 
     def config_validity_checker(self, conf) -> bool:
         """check for collision in given configuration, arm-arm and arm-obstacle
@@ -45,13 +47,15 @@ class BuildingBlocks3D(object):
         # Transform configuration to global sphere coordinates
         global_sphere_coords = self.transform.conf2sphere_coords(conf)
 
-        # Check for collisions with the floor (z = 0)
+        # Check for collisions with the floor (z = 0) and wall (x = 0.4)
         for i, link in enumerate(global_sphere_coords.keys()):
             for j, sphere in enumerate(global_sphere_coords[link]):
+                if sphere[0] > 0.4:
+                    return False  # Wall collision detected
                 if i != 0:  # or j != 0:  #skip the base link
                     if sphere[2] - self.ur_params.sphere_radius[link] < 0:
                         # print("COLLISION WITH FLOOR DETECTED")
-                        return True  # Floor collision detected
+                        return False  # Floor collision detected
 
         # Check for internal collisions
         for link1, link2 in self.possible_link_collisions:
@@ -63,13 +67,7 @@ class BuildingBlocks3D(object):
                     dist = np.linalg.norm(sphere1 - sphere2)
                     if dist < self.ur_params.sphere_radius[link1] + self.ur_params.sphere_radius[link2]:
                         # print("INTERNAL COLLISION DETECTED")
-                        return True  # Internal collision detected
-            # Check if the manipulator exceeds the x-direction limit (0.4 m)
-        for link in global_sphere_coords.keys():
-            for sphere in global_sphere_coords[link]:
-                if sphere[0] > 0.4:
-                    # Manipulator exceeds x-direction limit
-                    return False
+                        return False  # Internal collision detected
 
         if len(self.env.obstacles) != 0:
             # Check for collisions with obstacles
@@ -79,10 +77,10 @@ class BuildingBlocks3D(object):
                         dist = np.linalg.norm(sphere - obstacle)
                         if dist < self.ur_params.sphere_radius[link] + self.env.radius:
                             # print("OBSTACLE COLLISION DETECTED")
-                            return True  # Obstacle collision detected
+                            return False  # Obstacle collision detected
 
         # No collisions detected
-        return False
+        return True
 
 
     def edge_validity_checker(self, prev_conf, current_conf) -> bool:
@@ -91,12 +89,14 @@ class BuildingBlocks3D(object):
         @param current_conf - current configuration
         '''
         angular_differences = [abs(current - prev) for current, prev in zip(current_conf, prev_conf)]
-        num_configs = max(3, math.ceil(max(angular_differences) / self.resolution))
+        num_configs = max(2, math.ceil(max(angular_differences) / self.resolution))
+        print(num_configs)
         configs = np.linspace(prev_conf, current_conf, num_configs)
         for conf in configs:
             if self.config_validity_checker(conf):
                 return False
         return True
+
     def compute_distance(self, conf1, conf2):
         '''
         Returns the Edge cost- the cost of transition from configuration 1 to configuration 2
