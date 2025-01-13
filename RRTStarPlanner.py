@@ -52,20 +52,34 @@ class RRTStarPlanner(object):
         Compute and return the plan. The function should return a numpy array containing the states in the configuration space.
         '''
         # Tree sampling
+        print("Starting tree sampling...")
         self.tree.add_vertex(self.start)
-
+        iterations = 0
         while not self.tree.is_goal_exists(self.goal):
+            iterations = iterations + 1
+            print(f"Iteration {iterations}")
+
+            if iterations == self.max_itr:
+                print(f"Maximum iterations reached: {self.max_itr}")
+                return None
+
             rand_config = self.sample_random_config(self.goal_prob, self.goal)
+            print(f"Random configuration sampled: {rand_config}")
+
             near_config_id, near_config = self.tree.get_nearest_config(rand_config)
+            print(f"Nearest configuration found: {near_config}")
+
             new_config = self.extend(near_config, rand_config)
+            print(f"New configuration after extension: {new_config}")
 
             if new_config is not None and self.bb.edge_validity_checker(new_config, near_config):
                 # Get k nearest neighbors safely
                 near_ids, near_configs = self.get_safe_neighbors(new_config)
+                print(f"Found {len(near_ids)} valid neighbors")
 
                 # Only proceed with RRT* optimizations if we have neighbors
                 if near_ids:
-                    # Find best parent among nearest neighbors
+                    print("Proceeding with RRT* optimizations...")
                     min_cost = float('inf')
                     best_parent_id = None
 
@@ -76,8 +90,10 @@ class RRTStarPlanner(object):
                             if total_cost < min_cost:
                                 min_cost = total_cost
                                 best_parent_id = near_id
+                            print(f"Cost for neighbor {near_id}: {cost}, total cost: {total_cost}")
 
                     if best_parent_id is not None:
+                        print(f"Best parent found: {best_parent_id}, with cost: {min_cost}")
                         # Add vertex and edge with best parent
                         new_vid = self.tree.add_vertex(new_config)
                         cost = self.bb.compute_distance(new_config, self.tree.vertices[best_parent_id].config)
@@ -94,13 +110,17 @@ class RRTStarPlanner(object):
                                     self.update_children_costs(near_id)
                 else:
                     # If no valid neighbors found, fall back to basic RRT behavior
+                    print("No valid neighbors found, falling back to basic RRT behavior...")
                     new_vid = self.tree.add_vertex(new_config)
                     cost = self.bb.compute_distance(new_config, near_config)
                     self.tree.add_edge(near_config_id, new_vid, cost)
+            else:
+                print(f"Invalid edge between {near_config} and {new_config}")
 
         print(f"Tree is generated and contains: {len(self.tree.vertices)} vertices")
 
         # Plan computation
+        print("Beginning plan computation...")
         goal_idx = self.tree.get_idx_for_config(self.goal)
         if goal_idx is None:
             print("Goal configuration not found in tree")
@@ -120,9 +140,10 @@ class RRTStarPlanner(object):
             if not np.allclose(plan[0], self.start, atol=1e-6):
                 plan.insert(0, self.start)
 
+            print(f"Plan found with {len(plan)} steps.")
             return np.array(plan)
         except KeyError as e:
-            print(f"No path found between {self.start} and {self.goal}")
+            print(f"No path found between {self.start} and {self.goal}: {e}")
             return None
 
     def update_children_costs(self, parent_id):
@@ -177,15 +198,19 @@ class RRTStarPlanner(object):
         return new_config
 
     def sample_random_config(self, goal_prob, goal):
+        # If the goal probability condition is met, return the goal configuration
         if np.random.rand() < goal_prob:
             return goal
 
         while True:
             if len(self.goal) == 4:
-                # REGULAR CASE
+                # REGULAR CASE: Sampling for a 4-joint manipulator
                 config = np.random.uniform(low=-np.pi, high=np.pi, size=(4,))
             else:
-                # DOT_ENV CASE
-                config = self.bb.sample_random_config(goal_prob, self.goal)
+                # DOT_ENV CASE: Sampling for a 3D manipulator (e.g., 6-joint manipulator)
+                config = np.random.uniform(low=-np.pi, high=np.pi, size=(6,))  # Adjust for 6 joints
+                print(f"Generated DOT_ENV config: {config}")
+
+            # Validate the sampled configuration
             if self.bb.config_validity_checker(config):
                 return config

@@ -45,7 +45,7 @@ def run_dot_2d_astar():
 def run_dot_2d_rrt():
     planning_env = MapDotEnvironment(json_file=MAP_DETAILS["json_file"])
     bb = DotBuildingBlocks2D(planning_env)
-    planner = RRTMotionPlanner(bb=bb, start=MAP_DETAILS["start"], goal=MAP_DETAILS["goal"], ext_mode="E1", goal_prob=0.01)
+    planner = RRTMotionPlanner(bb=bb, start=MAP_DETAILS["start"], goal=MAP_DETAILS["goal"], ext_mode="E1", goal_prob=0.01, step_size =0.5)
 
     # execute plan
     plan = planner.plan()
@@ -55,7 +55,7 @@ def run_2d_rrt_motion_planning():
     MAP_DETAILS = {"json_file": "twoD/map_mp.json", "start": np.array([0.78, -0.78, 0.0, 0.0]), "goal": np.array([0.3, 0.15, 1.0, 1.1])}
     planning_env = MapEnvironment(json_file=MAP_DETAILS["json_file"], task="mp")
     bb = BuildingBlocks2D(planning_env)
-    planner = RRTMotionPlanner(bb=bb, start=MAP_DETAILS["start"], goal=MAP_DETAILS["goal"], ext_mode="E2", goal_prob=0.01)
+    planner = RRTMotionPlanner(bb=bb, start=MAP_DETAILS["start"], goal=MAP_DETAILS["goal"], ext_mode="E2", goal_prob=0.01, step_size=0.5)
     # execute plan
     plan = planner.plan()
     Visualizer(bb).visualize_plan(plan=plan, start=MAP_DETAILS["start"], goal=MAP_DETAILS["goal"])
@@ -73,7 +73,7 @@ def run_2d_rrt_inspection_planning():
 def run_dot_2d_rrt_star():
     planning_env = MapDotEnvironment(json_file=MAP_DETAILS["json_file"])
     bb = DotBuildingBlocks2D(planning_env)
-    planner = RRTStarPlanner(bb=bb, start=MAP_DETAILS["start"], goal=MAP_DETAILS["goal"], ext_mode="E1", goal_prob=0.01, k=1, max_step_size=None)
+    planner = RRTStarPlanner(bb=bb, start=MAP_DETAILS["start"], goal=MAP_DETAILS["goal"], ext_mode="E1", goal_prob=0.01, k=7, max_step_size=2)
 
     # execute plan
     plan = planner.plan()
@@ -81,13 +81,13 @@ def run_dot_2d_rrt_star():
 
 def run_3d():
     ur_params = UR5e_PARAMS(inflation_factor=1)
-    env = Environment(env_idx=1)
+    env = Environment(env_idx=2)
     transform = Transform(ur_params)
 
     bb = BuildingBlocks3D(transform=transform,
                           ur_params=ur_params,
                           env=env,
-                          resolution=0.1 )
+                          resolution=0.1, p_bias=0.05 )
 
     visualizer = Visualize_UR(ur_params, env=env, transform=transform, bb=bb)
 
@@ -96,14 +96,15 @@ def run_3d():
     env2_goal = np.deg2rad([50, -80, 90, -90, -90, 0 ])
     # ---------------------------------------
 
-    rrt_star_planner = RRTStarPlanner(max_step_size=0.5,
+    rrt_star_planner = RRTStarPlanner(max_step_size=0.15,
                                       start=env2_start,
                                       goal=env2_goal,
-                                      max_itr=4000,
+                                      max_itr=2000,
                                       stop_on_goal=True,
                                       bb=bb,
                                       goal_prob=0.05,
-                                      ext_mode="E2")
+                                      ext_mode="E2",
+                                      k = 10)
 
     path = rrt_star_planner.plan()
 
@@ -133,9 +134,9 @@ def run_3d():
 
 
 if __name__ == "__main__":
-     run_dot_2d_astar()
-    # run_dot_2d_rrt()
-    # run_dot_2d_rrt_star()
-    # run_2d_rrt_motion_planning()
-    # run_2d_rrt_inspection_planning()
-    #run_3d()
+    #run_dot_2d_astar()
+     #run_dot_2d_rrt()
+     #run_dot_2d_rrt_star()
+     #run_2d_rrt_motion_planning()
+     #run_2d_rrt_inspection_planning()
+     run_3d()

@@ -1,5 +1,5 @@
 import numpy as np
-
+import math
 
 class BuildingBlocks3D(object):
     '''
@@ -42,8 +42,47 @@ class BuildingBlocks3D(object):
         return True if in collision
         @param conf - some configuration
         """
-        # TODO: HW2 5.2.2- Pay attention that function is a little different than in HW2
-        pass
+        # Transform configuration to global sphere coordinates
+        global_sphere_coords = self.transform.conf2sphere_coords(conf)
+
+        # Check for collisions with the floor (z = 0)
+        for i, link in enumerate(global_sphere_coords.keys()):
+            for j, sphere in enumerate(global_sphere_coords[link]):
+                if i != 0:  # or j != 0:  #skip the base link
+                    if sphere[2] - self.ur_params.sphere_radius[link] < 0:
+                        # print("COLLISION WITH FLOOR DETECTED")
+                        return True  # Floor collision detected
+
+        # Check for internal collisions
+        for link1, link2 in self.possible_link_collisions:
+            if link1 not in global_sphere_coords or link2 not in global_sphere_coords:
+                continue
+
+            for sphere1 in global_sphere_coords[link1]:
+                for sphere2 in global_sphere_coords[link2]:
+                    dist = np.linalg.norm(sphere1 - sphere2)
+                    if dist < self.ur_params.sphere_radius[link1] + self.ur_params.sphere_radius[link2]:
+                        # print("INTERNAL COLLISION DETECTED")
+                        return True  # Internal collision detected
+            # Check if the manipulator exceeds the x-direction limit (0.4 m)
+        for link in global_sphere_coords.keys():
+            for sphere in global_sphere_coords[link]:
+                if sphere[0] > 0.4:
+                    # Manipulator exceeds x-direction limit
+                    return False
+
+        if len(self.env.obstacles) != 0:
+            # Check for collisions with obstacles
+            for link in global_sphere_coords.keys():
+                for sphere in global_sphere_coords[link]:
+                    for obstacle in self.env.obstacles:
+                        dist = np.linalg.norm(sphere - obstacle)
+                        if dist < self.ur_params.sphere_radius[link] + self.env.radius:
+                            # print("OBSTACLE COLLISION DETECTED")
+                            return True  # Obstacle collision detected
+
+        # No collisions detected
+        return False
 
 
     def edge_validity_checker(self, prev_conf, current_conf) -> bool:
@@ -51,9 +90,13 @@ class BuildingBlocks3D(object):
         @param prev_conf - some configuration
         @param current_conf - current configuration
         '''
-        # TODO: HW2 5.2.4
-        pass
-
+        angular_differences = [abs(current - prev) for current, prev in zip(current_conf, prev_conf)]
+        num_configs = max(3, math.ceil(max(angular_differences) / self.resolution))
+        configs = np.linspace(prev_conf, current_conf, num_configs)
+        for conf in configs:
+            if self.config_validity_checker(conf):
+                return False
+        return True
     def compute_distance(self, conf1, conf2):
         '''
         Returns the Edge cost- the cost of transition from configuration 1 to configuration 2
