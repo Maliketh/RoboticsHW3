@@ -90,10 +90,9 @@ class BuildingBlocks3D(object):
         '''
         angular_differences = [abs(current - prev) for current, prev in zip(current_conf, prev_conf)]
         num_configs = max(2, math.ceil(max(angular_differences) / self.resolution))
-        print(num_configs)
         configs = np.linspace(prev_conf, current_conf, num_configs)
         for conf in configs:
-            if self.config_validity_checker(conf):
+            if not self.config_validity_checker(conf):
                 return False
         return True
 
