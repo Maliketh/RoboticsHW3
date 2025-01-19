@@ -206,7 +206,7 @@ class Visualizer:
             # convert plot to image
             canvas = plt.gca().figure.canvas
             canvas.draw()
-            data = np.fromstring(canvas.tostring_rgb(), dtype=np.uint8, sep='')
+            data = np.fromstring(canvas.tostring_argb(), dtype=np.uint8, sep='')
             data = data.reshape(canvas.get_width_height()[::-1] + (3,))
             plan_images.append(data)
 

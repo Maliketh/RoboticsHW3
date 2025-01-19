@@ -62,7 +62,6 @@ class MapDotEnvironment(object):
         for obstacle in self.obstacles:
             if obstacle.intersects(Point(state[0], state[1])):
                 return False
-
         return True
 
     def edge_validity_checker(self, state1, state2):

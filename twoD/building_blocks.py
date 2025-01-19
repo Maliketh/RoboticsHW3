@@ -23,7 +23,7 @@ class BuildingBlocks2D(object):
         @param next_config Next configuration.
         '''
         return np.linalg.norm(next_config - prev_config)
-        pass
+
 
     def compute_path_cost(self, path):
         totat_cost = 0
@@ -267,3 +267,20 @@ class BuildingBlocks2D(object):
         @param inspected_points list of inspected points.
         '''
         return len(inspected_points) / len(self.env.inspection_points)
+
+    def sample_random_config(self, goal_prob, goal_conf) -> np.array:
+        """
+        sample random configuration
+        @param goal_conf - the goal configuration
+        :param goal_prob - the probability that goal should be sampled
+        """
+        if np.random.random() < goal_prob:
+            return goal_conf
+
+        while True:
+            config = np.random.uniform(low=-np.pi, high=np.pi, size=goal_conf.size)
+
+            # Validate the sampled configuration
+            if self.config_validity_checker(config):
+                # print("Sampled valid config: ", config)
+                return config
