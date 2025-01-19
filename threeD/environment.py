@@ -16,7 +16,7 @@ class Environment(object):
         elif env_idx == 2:
             x_const = 0
             y_min, y_max = -0.65, -0.3
-            z_min, z_max = 0 ,0.5
+            z_min, z_max = 0, 0.5
             self.wall_x_const(y_min, y_max, z_min,z_max, x_const, obstacles)
 
         elif env_idx == 3:

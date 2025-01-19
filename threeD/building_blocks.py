@@ -32,12 +32,15 @@ class BuildingBlocks3D(object):
         """
         sample random configuration
         @param goal_conf - the goal configuration
-        :param goal_prob - the probability that goal should be sampled
+        @param goal_prob - the probability that goal should be sampled
         """
         if np.random.random() < goal_prob:
             return goal_conf
 
-        return np.array([np.random.uniform(lim[0], lim[1]) for lim in self.ur_params.mechal_limits.values()])
+        while True:
+            config = np.array([np.random.uniform(lim[0], lim[1]) for lim in self.ur_params.mechamical_limits.values()])
+            if self.config_validity_checker(config):
+                return config
 
     def config_validity_checker(self, conf) -> bool:
         """check for collision in given configuration, arm-arm and arm-obstacle
@@ -82,12 +85,13 @@ class BuildingBlocks3D(object):
         # No collisions detected
         return True
 
-
     def edge_validity_checker(self, prev_conf, current_conf) -> bool:
         '''check for collisions between two configurations - return True if trasition is valid
         @param prev_conf - some configuration
         @param current_conf - current configuration
         '''
+        if current_conf is None or prev_conf is None:
+            print(f"Invalid configuration: {current_conf}, {prev_conf}")
         angular_differences = [abs(current - prev) for current, prev in zip(current_conf, prev_conf)]
         num_configs = max(2, math.ceil(max(angular_differences) / self.resolution))
         configs = np.linspace(prev_conf, current_conf, num_configs)
