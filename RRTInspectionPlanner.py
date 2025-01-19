@@ -2,9 +2,9 @@ import numpy as np
 from RRTTree import RRTTree
 import time
 
-
+    
 class RRTInspectionPlanner(object):
-    def __init__(self, bb, start, ext_mode, goal_prob, coverage):
+    def __init__(self, bb, start, ext_mode, goal_prob, coverage, step_size=0.5):
 
         # set environment and search tree
         self.bb = bb
@@ -15,16 +15,16 @@ class RRTInspectionPlanner(object):
         self.ext_mode = ext_mode
         self.goal_prob = goal_prob
         self.coverage = coverage
+        self.all_inspections = []
 
-        # set step size - remove for students
-        self.step_size = min(self.bb.env.xlimit[-1] / 50, self.bb.env.ylimit[-1] / 200)
+        self.step_size = step_size # min(self.bb.env.xlimit[-1] / 50, self.bb.env.ylimit[-1] / 200)
 
     def plan(self):
         '''
         Compute and return the plan. The function should return a numpy array containing the states in the configuration space.
         '''
         # Tree sampling
-        print(f"---------------------------Tree sampling started! Goal coverage: {self.coverage}")
+        #print(f"---------------------------Tree sampling started! Goal coverage: {self.coverage}")
         iter = 0
         self.tree.add_vertex(self.start, self.bb.get_inspected_points(self.start))
         while self.coverage > self.tree.max_coverage:
@@ -35,21 +35,25 @@ class RRTInspectionPlanner(object):
 
             if self.bb.edge_validity_checker(new_config, near_config):
                 v = len(self.tree.vertices)
-
-                if v % 500 == 0:
+                '''
+                if v % 1000 == 0:
                     print(f"Num vertices: {v}")
                     print(f"Current coverage: {self.tree.max_coverage}")
                     print(f"Num of iterations: {iter}")
-
+                '''
+                new_inspections = self.bb.get_inspected_points(new_config)
+                self.all_inspections = self.bb.compute_union_of_points(new_inspections, self.all_inspections)
                 inspected_pts = self.bb.compute_union_of_points(self.tree.vertices[near_config_id].inspected_points,
-                                                                self.bb.get_inspected_points(new_config))
+                                                                new_inspections)
+
                 vid = self.tree.add_vertex(new_config, inspected_pts)
                 cost = self.bb.compute_distance(new_config, near_config)
                 self.tree.add_edge(near_config_id, vid, cost)
-
+        '''
         print(f"---------------------------Tree sampling finished!"
               f"\nBest vertex: {self.tree.vertices[self.tree.max_coverage_id].config}"
               f"\nInspected points: {self.tree.vertices[self.tree.max_coverage_id].inspected_points}")
+        '''
           
         # Plan computation
         plan = [self.tree.vertices[self.tree.max_coverage_id].config]

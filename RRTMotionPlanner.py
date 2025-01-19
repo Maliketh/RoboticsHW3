@@ -30,7 +30,7 @@ class RRTMotionPlanner(object):
                 vid = self.tree.add_vertex(new_config)
                 cost = self.bb.compute_distance(new_config, near_config)
                 self.tree.add_edge(near_config_id, vid, cost)
-        print(f"Tree is generated and contains: {len(self.tree.vertices)} vertices")
+        #print(f"Tree is generated and contains: {len(self.tree.vertices)} vertices")
         # Plan computation
         plan = [self.goal]
         try:
@@ -40,7 +40,7 @@ class RRTMotionPlanner(object):
                 parent_idx = self.tree.edges[child_idx]
                 parent = self.tree.vertices[parent_idx].config
                 plan.insert(0, parent)
-            print(np.array(plan).shape)
+            #print(np.array(plan).shape)
             return np.array(plan)
         except KeyError as e:
             print(f"No path found between {self.start} and {self.goal}")
