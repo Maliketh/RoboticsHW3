@@ -180,7 +180,7 @@ def benchmark3D():
             plans = []
             improvements = []
 
-            for i in range(1):
+            for i in range(num_tests):
                 print(".", end='')
 
                 rrt_star_planner = RRTStarPlanner(max_step_size=max_step_size,
